@@ -1,0 +1,46 @@
+{
+  "name": "react-native-unified-devtools",
+  "version": "0.1.0",
+  "description": "All-in-one in-app developer workbench for React Native 0.83+ and Expo",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "devtools",
+    "react-native-0.83",
+    "tanstack-query",
+    "console",
+    "flipper",
+    "buoy"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@tanstack/react-query": ">=4.0.0 || >=5.0.0",
+    "react": ">=18.2.0 || >=19.0.0",
+    "react-native": ">=0.74.0 || >=0.80.0 || >=0.83.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.28.0",
+    "@types/react": "^18.2.79",
+    "@types/react-native": "^0.73.0",
+    "react": "18.2.0",
+    "react-native": "0.74.1",
+    "typescript": "^5.4.5"
+  }
+}
