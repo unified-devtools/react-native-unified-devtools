@@ -1,0 +1,72 @@
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: publish-npm-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-publish:
+    name: Build & Publish Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Check version against npm registry
+        id: check-version
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          echo "Package: $PACKAGE_NAME"
+          echo "Local version: $LOCAL_VERSION"
+          echo "local_version=$LOCAL_VERSION" >> "$GITHUB_OUTPUT"
+
+          # Check if version exists on npm
+          if npm view "$PACKAGE_NAME@$LOCAL_VERSION" version --silent > /dev/null 2>&1; then
+            echo "Version $LOCAL_VERSION already exists on npm. Skipping publish."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New version $LOCAL_VERSION detected. Ready to publish."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.check-version.outputs.should_publish == 'true'
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Git Tag & GitHub Release
+        if: steps.check-version.outputs.should_publish == 'true'
+        run: |
+          VERSION="v${{ steps.check-version.outputs.local_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$VERSION"
+          git push origin "$VERSION" || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
