@@ -112,7 +112,7 @@ export const NetworkDetailsModal: React.FC<NetworkDetailsModalProps> = ({
               style={styles.overrideBtn}
               activeOpacity={0.8}
             >
-              <Text style={styles.overrideBtnText}>⚡ Override Response</Text>
+              <Text style={styles.overrideBtnText}>⚡ Mock this Request</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -144,7 +144,7 @@ export const NetworkDetailsModal: React.FC<NetworkDetailsModalProps> = ({
             </View>
             {request.isOverridden ? (
               <View style={styles.mockBadge}>
-                <Text style={styles.mockText}>⚡ Overridden</Text>
+                <Text style={styles.mockText}>⚡ Mocked</Text>
               </View>
             ) : null}
             <Text style={styles.durationText}>

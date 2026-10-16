@@ -5,6 +5,7 @@ import {
   Modal,
   PanResponder,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -252,58 +253,64 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
             </View>
           </View>
 
-          {/* Tab Selector Bar */}
-          <View style={styles.tabBar}>
-            <TouchableOpacity
-              style={[styles.tabItem, activeTab === 'query' && styles.tabItemActive]}
-              onPress={() => setActiveTab('query')}
+          {/* Horizontally Scrollable Tab Selector Bar */}
+          <View style={styles.tabBarContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabBarScroll}
             >
-              <TanStackIcon size={14} />
-              <Text style={[styles.tabLabel, activeTab === 'query' && styles.tabLabelActive]}>
-                Queries
-              </Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{queryStats.all}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabItem, activeTab === 'console' && styles.tabItemActive]}
-              onPress={() => setActiveTab('console')}
-            >
-              <Text style={styles.tabIcon}>💬</Text>
-              <Text style={[styles.tabLabel, activeTab === 'console' && styles.tabLabelActive]}>
-                Console
-              </Text>
-              <View
-                style={[
-                  styles.countBadge,
-                  errorLogsCount > 0 && { backgroundColor: colors.status.error },
-                ]}
+              <TouchableOpacity
+                style={[styles.tabItem, activeTab === 'query' && styles.tabItemActive]}
+                onPress={() => setActiveTab('query')}
               >
-                <Text style={styles.countText}>{errorLogsCount > 0 ? errorLogsCount : logs.length}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabItem, activeTab === 'network' && styles.tabItemActive]}
-              onPress={() => setActiveTab('network')}
-            >
-              <Text style={styles.tabIcon}>🌐</Text>
-              <Text style={[styles.tabLabel, activeTab === 'network' && styles.tabLabelActive]}>
-                Network
-              </Text>
-              <View
-                style={[
-                  styles.countBadge,
-                  networkErrorCount > 0 && { backgroundColor: colors.status.error },
-                ]}
-              >
-                <Text style={styles.countText}>
-                  {networkErrorCount > 0 ? networkErrorCount : networkRequests.length}
+                <TanStackIcon size={14} />
+                <Text style={[styles.tabLabel, activeTab === 'query' && styles.tabLabelActive]}>
+                  Queries
                 </Text>
-              </View>
-            </TouchableOpacity>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countText}>{queryStats.all}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.tabItem, activeTab === 'console' && styles.tabItemActive]}
+                onPress={() => setActiveTab('console')}
+              >
+                <Text style={styles.tabIcon}>💬</Text>
+                <Text style={[styles.tabLabel, activeTab === 'console' && styles.tabLabelActive]}>
+                  Console
+                </Text>
+                <View
+                  style={[
+                    styles.countBadge,
+                    errorLogsCount > 0 && { backgroundColor: colors.status.error },
+                  ]}
+                >
+                  <Text style={styles.countText}>{errorLogsCount > 0 ? errorLogsCount : logs.length}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.tabItem, activeTab === 'network' && styles.tabItemActive]}
+                onPress={() => setActiveTab('network')}
+              >
+                <Text style={styles.tabIcon}>🌐</Text>
+                <Text style={[styles.tabLabel, activeTab === 'network' && styles.tabLabelActive]}>
+                  Network
+                </Text>
+                <View
+                  style={[
+                    styles.countBadge,
+                    networkErrorCount > 0 && { backgroundColor: colors.status.error },
+                  ]}
+                >
+                  <Text style={styles.countText}>
+                    {networkErrorCount > 0 ? networkErrorCount : networkRequests.length}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
 
           {/* Active Tab Viewport */}
@@ -462,11 +469,14 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 11,
       fontWeight: 'bold',
     },
-    tabBar: {
-      flexDirection: 'row',
+    tabBarContainer: {
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+    },
+    tabBarScroll: {
+      flexDirection: 'row',
+      alignItems: 'center',
       paddingHorizontal: 8,
     },
     tabItem: {

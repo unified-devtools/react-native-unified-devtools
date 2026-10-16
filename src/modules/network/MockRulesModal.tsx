@@ -155,7 +155,7 @@ export const MockRulesModal: React.FC<MockRulesModalProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Text style={styles.closeText}>✕ Close</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>⚡ Network Mock Overrides</Text>
+          <Text style={styles.title}>⚡ Network Mock</Text>
           <TouchableOpacity
             onPress={() => {
               if (isCreating) {

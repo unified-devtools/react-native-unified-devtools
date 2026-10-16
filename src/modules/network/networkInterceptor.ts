@@ -32,34 +32,52 @@ function getStatusText(status: number): string {
 
 function matchUrlPattern(pattern: string, url: string): boolean {
   if (!pattern || !url) return false;
-  const trimmed = pattern.trim();
-  if (trimmed === '*' || trimmed === '') return true;
+  const p = pattern.trim();
+  const u = url.trim();
+  if (p === '*' || p === '') return true;
 
-  // If pattern starts with / (e.g. /v1/users), match against the pathname or full url
+  // 1. Direct equality (ignore trailing slashes)
+  const normP = p.replace(/\/+$/, '');
+  const normU = u.replace(/\/+$/, '');
+  if (normP === normU) return true;
+
+  // 2. Exact match against pathname
   try {
-    const urlObj = new URL(url);
-    if (trimmed.startsWith('/')) {
-      const pathWithQuery = urlObj.pathname + urlObj.search;
-      if (trimmed.endsWith('*')) {
-        const prefix = trimmed.slice(0, -1);
-        return pathWithQuery.startsWith(prefix) || url.includes(prefix);
-      }
-      return pathWithQuery === trimmed || urlObj.pathname === trimmed;
-    }
-  } catch {
-    // If not a valid absolute URL, test direct pattern matching
+    const urlObj = new URL(u);
+    const pathname = urlObj.pathname.replace(/\/+$/, '');
+    if (pathname === normP || normP === pathname + urlObj.search) return true;
+  } catch {}
+
+  // 3. Simple substring match if no glob character
+  if (!p.includes('*')) {
+    if (u.includes(p)) return true;
+    try {
+      const urlObj = new URL(u);
+      if (urlObj.pathname.includes(p)) return true;
+    } catch {}
   }
 
-  // Convert wildcard * to regex .*
+  // 4. Wildcard / Glob match
   try {
-    const escaped = trimmed
+    const escaped = p
       .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
       .replace(/\*/g, '.*');
-    const regex = new RegExp(`^${escaped}$`, 'i');
-    return regex.test(url);
+
+    const fullRegex = new RegExp(`^${escaped}$`, 'i');
+    if (fullRegex.test(u)) return true;
+
+    const subRegex = new RegExp(escaped, 'i');
+    if (subRegex.test(u)) return true;
+
+    try {
+      const urlObj = new URL(u);
+      if (subRegex.test(urlObj.pathname)) return true;
+    } catch {}
   } catch {
-    return url.includes(trimmed);
+    return u.includes(p);
   }
+
+  return false;
 }
 
 class NetworkManager {
@@ -488,6 +506,26 @@ class NetworkManager {
           const endTime = Date.now();
           const duration = endTime - startTime;
 
+          const createSafeEvent = (type: string) => {
+            if (typeof Event === 'function') {
+              try {
+                return new Event(type);
+              } catch {
+                // fallback to object
+              }
+            }
+            return {
+              type,
+              target: this,
+              currentTarget: this,
+              bubbles: false,
+              cancelable: false,
+              defaultPrevented: false,
+              eventPhase: 2,
+              timeStamp: Date.now(),
+            };
+          };
+
           if (matchedRule.mode === 'offline') {
             manager.recordRequest({
               id,
@@ -507,11 +545,34 @@ class NetworkManager {
               matchedRuleId: matchedRule.id,
             });
 
-            // Dispatch error event
-            if (typeof this.onerror === 'function') {
-              this.onerror(new ProgressEvent('error'));
+            this.status = 0;
+            this.readyState = 4;
+            this._hasError = true;
+
+            const errEvent = createSafeEvent('error');
+            const endEvent = createSafeEvent('loadend');
+
+            if (typeof this.setReadyState === 'function') {
+              try {
+                this.setReadyState(4);
+              } catch {
+                // ignore
+              }
             }
-            this.dispatchEvent?.(new ProgressEvent('error'));
+
+            if (typeof this.onreadystatechange === 'function') {
+              try { this.onreadystatechange(errEvent as any); } catch {}
+            }
+            if (typeof this.onerror === 'function') {
+              try { this.onerror(errEvent as any); } catch {}
+            }
+            if (typeof this.onloadend === 'function') {
+              try { this.onloadend(endEvent as any); } catch {}
+            }
+            if (typeof this.dispatchEvent === 'function') {
+              try { this.dispatchEvent(errEvent as any); } catch {}
+              try { this.dispatchEvent(endEvent as any); } catch {}
+            }
             return;
           }
 
@@ -534,10 +595,35 @@ class NetworkManager {
               matchedRuleId: matchedRule.id,
             });
 
-            if (typeof this.ontimeout === 'function') {
-              this.ontimeout(new ProgressEvent('timeout'));
+            this.status = 0;
+            this.readyState = 4;
+            this._hasError = true;
+            this._timedOut = true;
+
+            const timeoutEvent = createSafeEvent('timeout');
+            const endEvent = createSafeEvent('loadend');
+
+            if (typeof this.setReadyState === 'function') {
+              try {
+                this.setReadyState(4);
+              } catch {
+                // ignore
+              }
             }
-            this.dispatchEvent?.(new ProgressEvent('timeout'));
+
+            if (typeof this.onreadystatechange === 'function') {
+              try { this.onreadystatechange(timeoutEvent as any); } catch {}
+            }
+            if (typeof this.ontimeout === 'function') {
+              try { this.ontimeout(timeoutEvent as any); } catch {}
+            }
+            if (typeof this.onloadend === 'function') {
+              try { this.onloadend(endEvent as any); } catch {}
+            }
+            if (typeof this.dispatchEvent === 'function') {
+              try { this.dispatchEvent(timeoutEvent as any); } catch {}
+              try { this.dispatchEvent(endEvent as any); } catch {}
+            }
             return;
           }
 
@@ -574,20 +660,40 @@ class NetworkManager {
             matchedRuleId: matchedRule.id,
           });
 
+          // Set React Native internal XHR fields so Axios response parsing succeeds
+          this._response = matchedRule.responseBody;
+          this._cachedResponse = undefined;
+          this.responseURL = url;
+
+          if (typeof this.setResponseHeaders === 'function') {
+            try {
+              this.setResponseHeaders({
+                'content-type': 'application/json; charset=utf-8',
+                'x-powered-by': 'Unified-DevTools-Mock',
+                ...(matchedRule.responseHeaders || {}),
+              });
+            } catch {
+              // ignore
+            }
+          }
+
           // Simulate XHR success response properties
-          Object.defineProperty(this, 'readyState', { value: 4, writable: true });
-          Object.defineProperty(this, 'status', { value: matchedRule.status, writable: true });
+          Object.defineProperty(this, 'readyState', { value: 4, writable: true, configurable: true });
+          Object.defineProperty(this, 'status', { value: matchedRule.status, writable: true, configurable: true });
           Object.defineProperty(this, 'statusText', {
             value: matchedRule.statusText || getStatusText(matchedRule.status),
             writable: true,
+            configurable: true,
           });
           Object.defineProperty(this, 'responseText', {
             value: matchedRule.responseBody,
             writable: true,
+            configurable: true,
           });
           Object.defineProperty(this, 'response', {
             value: matchedRule.responseBody,
             writable: true,
+            configurable: true,
           });
 
           this.getAllResponseHeaders = () => responseHeadersStr;
@@ -596,17 +702,33 @@ class NetworkManager {
             return null;
           };
 
+          const readyEvent = createSafeEvent('readystatechange');
+          const loadEvent = createSafeEvent('load');
+          const endEvent = createSafeEvent('loadend');
+
+          if (typeof this.setReadyState === 'function') {
+            try {
+              this.setReadyState(4);
+            } catch {
+              // ignore
+            }
+          }
+
           if (typeof this.onreadystatechange === 'function') {
-            this.onreadystatechange(new Event('readystatechange'));
+            try { this.onreadystatechange(readyEvent as any); } catch {}
           }
           if (typeof this.onload === 'function') {
-            this.onload(new ProgressEvent('load'));
+            try { this.onload(loadEvent as any); } catch {}
           }
           if (typeof this.onloadend === 'function') {
-            this.onloadend(new ProgressEvent('loadend'));
+            try { this.onloadend(endEvent as any); } catch {}
           }
-          this.dispatchEvent?.(new ProgressEvent('load'));
-          this.dispatchEvent?.(new ProgressEvent('loadend'));
+
+          if (typeof this.dispatchEvent === 'function') {
+            try { this.dispatchEvent(readyEvent as any); } catch {}
+            try { this.dispatchEvent(loadEvent as any); } catch {}
+            try { this.dispatchEvent(endEvent as any); } catch {}
+          }
         };
 
         if (matchedRule.delayMs && matchedRule.delayMs > 0) {
