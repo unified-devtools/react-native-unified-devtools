@@ -165,24 +165,28 @@ class NetworkManager {
 
   private notifyRequests(): void {
     const data = [...this.requests];
-    this.listeners.forEach((listener) => {
-      try {
-        listener(data);
-      } catch {
-        // Safe notification
-      }
-    });
+    setTimeout(() => {
+      this.listeners.forEach((listener) => {
+        try {
+          listener(data);
+        } catch {
+          // Safe notification
+        }
+      });
+    }, 0);
   }
 
   private notifyRules(): void {
     const data = [...this.mockRules];
-    this.rulesListeners.forEach((listener) => {
-      try {
-        listener(data);
-      } catch {
-        // Safe notification
-      }
-    });
+    setTimeout(() => {
+      this.rulesListeners.forEach((listener) => {
+        try {
+          listener(data);
+        } catch {
+          // Safe notification
+        }
+      });
+    }, 0);
   }
 
   public findMatchingRule(url: string, method: string): NetworkMockRule | undefined {

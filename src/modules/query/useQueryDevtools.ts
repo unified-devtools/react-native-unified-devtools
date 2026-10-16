@@ -23,11 +23,16 @@ export function useQueryDevtools(clientProp?: QueryClient) {
     const cache = queryClient.getQueryCache();
     setQueries([...cache.getAll()]);
 
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = cache.subscribe(() => {
-      setQueries([...cache.getAll()]);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setQueries([...cache.getAll()]);
+      }, 0);
     });
 
     return () => {
+      if (timer) clearTimeout(timer);
       unsubscribe();
     };
   }, [queryClient]);

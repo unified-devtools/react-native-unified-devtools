@@ -98,7 +98,9 @@ class ConsoleLogManager {
 
   private notify() {
     const current = [...this.logs];
-    this.listeners.forEach((l) => l(current));
+    setTimeout(() => {
+      this.listeners.forEach((l) => l(current));
+    }, 0);
   }
 }
 
