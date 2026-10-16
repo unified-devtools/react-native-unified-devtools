@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { THEME } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 interface JsonTreeProps {
   data: unknown;
@@ -17,13 +17,15 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
   isLast = true,
   initiallyExpanded = depth < 2,
 }) => {
+  const { colors } = useTheme();
   const [expanded, setExpanded] = useState<boolean>(initiallyExpanded);
   const indentStyle = { paddingLeft: depth * 12 };
+  const keyStyle = [styles.key, { color: colors.sky }];
 
   if (data === null) {
     return (
       <View style={[styles.row, indentStyle]}>
-        {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+        {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
         <Text style={styles.nullVal}>null</Text>
         {!isLast && <Text style={styles.punctuation}>,</Text>}
       </View>
@@ -33,7 +35,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
   if (data === undefined) {
     return (
       <View style={[styles.row, indentStyle]}>
-        {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+        {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
         <Text style={styles.undefinedVal}>undefined</Text>
         {!isLast && <Text style={styles.punctuation}>,</Text>}
       </View>
@@ -45,7 +47,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
   if (type === 'string') {
     return (
       <View style={[styles.row, indentStyle]}>
-        {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+        {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
         <Text style={styles.stringVal}>"{String(data)}"</Text>
         {!isLast && <Text style={styles.punctuation}>,</Text>}
       </View>
@@ -55,7 +57,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
   if (type === 'number') {
     return (
       <View style={[styles.row, indentStyle]}>
-        {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+        {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
         <Text style={styles.numberVal}>{String(data)}</Text>
         {!isLast && <Text style={styles.punctuation}>,</Text>}
       </View>
@@ -65,7 +67,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
   if (type === 'boolean') {
     return (
       <View style={[styles.row, indentStyle]}>
-        {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+        {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
         <Text style={styles.boolVal}>{String(data)}</Text>
         {!isLast && <Text style={styles.punctuation}>,</Text>}
       </View>
@@ -75,7 +77,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
   if (type === 'function') {
     return (
       <View style={[styles.row, indentStyle]}>
-        {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+        {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
         <Text style={styles.fnVal}>ƒ()</Text>
       </View>
     );
@@ -91,7 +93,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
           style={styles.clickableRow}
         >
           <Text style={styles.caret}>{isEmpty ? '  ' : expanded ? '▼ ' : '▶ '}</Text>
-          {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+          {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
           <Text style={styles.punctuation}>[</Text>
           {!expanded && (
             <Text style={styles.summary}>
@@ -141,7 +143,7 @@ export const JsonTree: React.FC<JsonTreeProps> = ({
           style={styles.clickableRow}
         >
           <Text style={styles.caret}>{isEmpty ? '  ' : expanded ? '▼ ' : '▶ '}</Text>
-          {name !== undefined && <Text style={styles.key}>"{name}": </Text>}
+          {name !== undefined && <Text style={keyStyle}>"{name}": </Text>}
           <Text style={styles.punctuation}>{'{'}</Text>
           {!expanded && (
             <Text style={styles.summary}>
@@ -204,7 +206,6 @@ const styles = StyleSheet.create({
     width: 14,
   },
   key: {
-    color: THEME.colors.sky,
     fontFamily: 'Courier',
     fontSize: 12,
   },

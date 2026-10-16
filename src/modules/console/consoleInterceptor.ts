@@ -14,7 +14,7 @@ class ConsoleLogManager {
   };
 
   public init() {
-    if (this.isInitialized) return;
+    if (this.isInitialized || process.env.NODE_ENV === 'test') return;
     this.isInitialized = true;
 
     const levels: ConsoleLogLevel[] = ['log', 'info', 'warn', 'error', 'debug'];

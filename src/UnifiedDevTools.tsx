@@ -4,15 +4,17 @@ import { DevToolsWorkbench } from './shell/DevToolsWorkbench';
 import { FloatingHud } from './shell/FloatingHud';
 import { consoleManager } from './modules/console/consoleInterceptor';
 import { useQueryDevtools } from './modules/query/useQueryDevtools';
+import { ThemeProvider } from './theme/ThemeContext';
 import type { ConsoleLogItem, UnifiedDevToolsProps } from './types';
 
-export const UnifiedDevTools: React.FC<UnifiedDevToolsProps> = ({
+const UnifiedDevToolsContent: React.FC<UnifiedDevToolsProps> = ({
   queryClient,
   defaultTab = 'query',
   initialIsOpen = false,
   position = 'bottom-right',
   enabled = true,
   enableConsole = true,
+  sheetHeightRatio = 0.82,
   style,
 }) => {
   const [isOpen, setIsOpen] = useState(initialIsOpen);
@@ -54,7 +56,7 @@ export const UnifiedDevTools: React.FC<UnifiedDevToolsProps> = ({
         initialPosition={position}
       />
 
-      {/* Main Workbench Modal */}
+      {/* Main Workbench Bottom Sheet */}
       <DevToolsWorkbench
         visible={isOpen}
         onClose={() => setIsOpen(false)}
@@ -63,8 +65,17 @@ export const UnifiedDevTools: React.FC<UnifiedDevToolsProps> = ({
         queryClient={resolvedClient}
         queryStats={stats}
         logs={logs}
+        sheetHeightRatio={sheetHeightRatio}
       />
     </View>
+  );
+};
+
+export const UnifiedDevTools: React.FC<UnifiedDevToolsProps> = (props) => {
+  return (
+    <ThemeProvider initialMode={props.themeMode ?? 'dark'}>
+      <UnifiedDevToolsContent {...props} />
+    </ThemeProvider>
   );
 };
 

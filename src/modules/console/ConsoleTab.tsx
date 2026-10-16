@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Clipboard,
   FlatList,
   StyleSheet,
   Text,
@@ -7,15 +8,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { THEME } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import type { ThemeColors } from '../../theme/colors';
 import type { ConsoleLogItem, ConsoleLogLevel } from '../../types';
 import { consoleManager } from './consoleInterceptor';
 import { JsonTree } from '../../shared/JsonTree';
 
 export const ConsoleTab: React.FC = () => {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const [logs, setLogs] = useState<ConsoleLogItem[]>([]);
   const [activeLevel, setActiveLevel] = useState<ConsoleLogLevel | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = consoleManager.subscribe((newLogs) => {
@@ -50,10 +55,33 @@ export const ConsoleTab: React.FC = () => {
       .padStart(3, '0')}`;
   };
 
+  const handleCopyLog = (item: ConsoleLogItem) => {
+    try {
+      const parts = item.args.map((arg) => {
+        if (typeof arg === 'string') return arg;
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch {
+          return String(arg);
+        }
+      });
+      let text = parts.join(' ');
+      if (item.stackTrace) {
+        text += `\n\nStack:\n${item.stackTrace}`;
+      }
+      Clipboard.setString(text);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      // ignore
+    }
+  };
+
   const renderLogItem = ({ item }: { item: ConsoleLogItem }) => {
     const isError = item.level === 'error';
     const isWarn = item.level === 'warn';
-    const levelColor = THEME.colors.console[item.level] || THEME.colors.text;
+    const levelColor = colors.console[item.level] || colors.text;
+    const isCopied = copiedId === item.id;
 
     return (
       <View
@@ -75,6 +103,18 @@ export const ConsoleTab: React.FC = () => {
               {item.level.toUpperCase()}
             </Text>
           </View>
+
+          {/* Copy Icon / Button beside status badge */}
+          <TouchableOpacity
+            style={styles.copyLogBtn}
+            onPress={() => handleCopyLog(item)}
+            activeOpacity={0.7}
+            accessibilityLabel="Copy log output"
+          >
+            <Text style={[styles.copyLogText, isCopied && styles.copyLogSuccess]}>
+              {isCopied ? '✓ Copied' : '📋 Copy'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Arguments rendering */}
@@ -157,7 +197,7 @@ export const ConsoleTab: React.FC = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Filter console output..."
-          placeholderTextColor={THEME.colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCapitalize="none"
@@ -183,143 +223,161 @@ export const ConsoleTab: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.colors.bg,
-  },
-  controlBar: {
-    padding: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
-    backgroundColor: THEME.colors.headerBg,
-    gap: 8,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  filterBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-    backgroundColor: THEME.colors.card,
-    borderWidth: 1,
-    borderColor: THEME.colors.borderSubtle,
-  },
-  filterBtnActive: {
-    borderColor: THEME.colors.sky,
-  },
-  filterBtnText: {
-    color: THEME.colors.textDim,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  filterBtnTextActive: {
-    color: THEME.colors.text,
-  },
-  clearBtn: {
-    marginLeft: 'auto',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-    backgroundColor: '#450a0a',
-    borderWidth: 1,
-    borderColor: '#7f1d1d',
-  },
-  clearBtnText: {
-    color: '#f87171',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  searchInput: {
-    backgroundColor: THEME.colors.card,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    color: THEME.colors.text,
-    fontSize: 12,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-  },
-  logRow: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: THEME.colors.bg,
-  },
-  errorRow: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderLeftWidth: 3,
-    borderLeftColor: THEME.colors.status.error,
-  },
-  warnRow: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderLeftWidth: 3,
-    borderLeftColor: THEME.colors.status.stale,
-  },
-  logHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  timestamp: {
-    color: THEME.colors.textMuted,
-    fontSize: 10,
-    fontFamily: 'Courier',
-  },
-  levelBadge: {
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
-    borderWidth: 0.5,
-  },
-  levelText: {
-    fontSize: 9,
-    fontWeight: '800',
-    fontFamily: 'Courier',
-  },
-  argsContainer: {
-    gap: 4,
-  },
-  argItem: {
-    marginVertical: 1,
-  },
-  argText: {
-    color: THEME.colors.text,
-    fontSize: 12,
-    fontFamily: 'Courier',
-  },
-  errorText: {
-    color: '#fca5a5',
-  },
-  warnText: {
-    color: '#fde68a',
-  },
-  stackContainer: {
-    marginTop: 6,
-    padding: 6,
-    backgroundColor: THEME.colors.codeBg,
-    borderRadius: 4,
-  },
-  stackText: {
-    color: THEME.colors.textMuted,
-    fontSize: 10,
-    fontFamily: 'Courier',
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: THEME.colors.borderSubtle,
-  },
-  emptyContainer: {
-    padding: 36,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: THEME.colors.textMuted,
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    controlBar: {
+      padding: 8,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.headerBg,
+      gap: 8,
+    },
+    filterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    filterBtn: {
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: 4,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    filterBtnActive: {
+      borderColor: colors.sky,
+    },
+    filterBtnText: {
+      color: colors.textDim,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    filterBtnTextActive: {
+      color: colors.text,
+    },
+    clearBtn: {
+      marginLeft: 'auto',
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: 4,
+      backgroundColor: isDark ? '#450a0a' : '#fee2e2',
+      borderWidth: 1,
+      borderColor: isDark ? '#7f1d1d' : '#fca5a5',
+    },
+    clearBtnText: {
+      color: '#ef4444',
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    searchInput: {
+      backgroundColor: colors.card,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      color: colors.text,
+      fontSize: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    logRow: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: colors.bg,
+    },
+    errorRow: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.06)',
+      borderLeftWidth: 3,
+      borderLeftColor: colors.status.error,
+    },
+    warnRow: {
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.06)',
+      borderLeftWidth: 3,
+      borderLeftColor: colors.status.stale,
+    },
+    logHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      marginBottom: 4,
+    },
+    timestamp: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontFamily: 'Courier',
+    },
+    levelBadge: {
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 3,
+      borderWidth: 0.5,
+    },
+    levelText: {
+      fontSize: 9,
+      fontWeight: '800',
+      fontFamily: 'Courier',
+    },
+    copyLogBtn: {
+      paddingHorizontal: 5,
+      paddingVertical: 1.5,
+      borderRadius: 4,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    copyLogText: {
+      color: colors.textDim,
+      fontSize: 9.5,
+      fontWeight: '600',
+    },
+    copyLogSuccess: {
+      color: colors.status.fresh,
+      fontWeight: '700',
+    },
+    argsContainer: {
+      gap: 4,
+    },
+    argItem: {
+      marginVertical: 1,
+    },
+    argText: {
+      color: colors.text,
+      fontSize: 12,
+      fontFamily: 'Courier',
+    },
+    errorText: {
+      color: isDark ? '#fca5a5' : '#dc2626',
+    },
+    warnText: {
+      color: isDark ? '#fde68a' : '#d97706',
+    },
+    stackContainer: {
+      marginTop: 6,
+      padding: 6,
+      backgroundColor: colors.codeBg,
+      borderRadius: 4,
+    },
+    stackText: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontFamily: 'Courier',
+    },
+    separator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.borderSubtle,
+    },
+    emptyContainer: {
+      padding: 36,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontStyle: 'italic',
+    },
+  });

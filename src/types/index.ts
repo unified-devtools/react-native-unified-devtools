@@ -69,7 +69,19 @@ export interface UnifiedDevToolsProps {
   enableConsole?: boolean;
 
   /**
+   * Theme mode: 'dark', 'light', or 'auto' (system). Default: 'dark'
+   */
+  themeMode?: 'dark' | 'light' | 'auto';
+
+  /**
+   * Ratio of screen height for the DevTools bottom sheet (e.g. 0.82 = 82%). Default: 0.82
+   */
+  sheetHeightRatio?: number;
+
+  /**
    * Custom style for root overlay container
    */
   style?: StyleProp<ViewStyle>;
 }
+
+export type ThemeMode = 'dark' | 'light' | 'auto';

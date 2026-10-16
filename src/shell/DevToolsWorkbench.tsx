@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Dimensions,
   Modal,
+  PanResponder,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -8,7 +11,8 @@ import {
   View,
 } from 'react-native';
 import type { Query, QueryClient } from '@tanstack/react-query';
-import { THEME } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import type { ConsoleLogItem, DevToolsTab, QueryStats } from '../types';
 import { QueryTab } from '../modules/query/QueryTab';
 import { ConsoleTab } from '../modules/console/ConsoleTab';
@@ -23,6 +27,7 @@ interface DevToolsWorkbenchProps {
   queryClient?: QueryClient;
   queryStats: QueryStats;
   logs: ConsoleLogItem[];
+  sheetHeightRatio?: number;
 }
 
 export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
@@ -33,61 +38,199 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
   queryClient,
   queryStats,
   logs,
+  sheetHeightRatio = 0.82,
 }) => {
+  const { colors, isDark, toggleTheme } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeTab, setActiveTab] = useState<DevToolsTab>(defaultTab);
+
+  const screenHeight = Dimensions.get('window').height;
+  const sheetHeight = Math.round(screenHeight * Math.min(Math.max(sheetHeightRatio, 0.4), 0.95));
+
+  const [modalVisible, setModalVisible] = useState(visible);
+  const panY = useRef(new Animated.Value(sheetHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  // Animate in / out based on visible prop
+  useEffect(() => {
+    if (visible) {
+      setModalVisible(true);
+      panY.setValue(sheetHeight);
+      backdropOpacity.setValue(0);
+
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.spring(panY, {
+          toValue: 0,
+          damping: 24,
+          mass: 0.8,
+          stiffness: 260,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (modalVisible) {
+      animateClose();
+    }
+  }, [visible]);
+
+  const animateClose = () => {
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(panY, {
+        toValue: sheetHeight,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+      onClose();
+    });
+  };
+
+  // Dedicated PanResponder for the top grab handle pill
+  const handlePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          animateClose();
+        } else {
+          Animated.spring(panY, {
+            toValue: 0,
+            damping: 24,
+            mass: 0.8,
+            stiffness: 260,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // PanResponder for the header bar (allows child button clicks first, triggers on vertical drag down)
+  const headerPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return (
+          gestureState.dy > 6 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
+        );
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 120 || gestureState.vy > 0.5) {
+          animateClose();
+        } else {
+          Animated.spring(panY, {
+            toValue: 0,
+            damping: 24,
+            mass: 0.8,
+            stiffness: 260,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const errorLogsCount = logs.filter((l) => l.level === 'error').length;
 
-  const handleRefetchAll = () => {
-    queryClient?.refetchQueries();
-  };
-
-  const handleClearCache = () => {
-    queryClient?.clear();
-  };
+  if (!modalVisible) {
+    return null;
+  }
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
+      visible={modalVisible}
+      animationType="none"
+      transparent={true}
+      onRequestClose={animateClose}
+      statusBarTranslucent
     >
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
+      <View style={styles.modalBackdropContainer}>
+        {/* Semi-transparent Dimmed Backdrop Overlay (Click to dismiss) */}
+        <Animated.View
+          style={[
+            styles.backdropOverlay,
+            { opacity: backdropOpacity },
+          ]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={animateClose}
+          />
+        </Animated.View>
+
+        {/* Sliding DevTools Drawer Bottom Sheet */}
+        <Animated.View
+          style={[
+            styles.sheetContainer,
+            {
+              height: sheetHeight,
+              transform: [{ translateY: panY }],
+            },
+          ]}
+        >
+          {/* Top Drag Handle Indicator Bar (Slide down to close) */}
+          <View
+            style={styles.handleBar}
+            {...handlePanResponder.panHandlers}
+          >
+            <View style={styles.handlePill} />
+          </View>
+
           {/* Main Top Header */}
-          <View style={styles.header}>
+          <View
+            style={styles.header}
+            {...headerPanResponder.panHandlers}
+          >
             <View style={styles.brandRow}>
               <View style={styles.brandBadge}>
-                <ReactIcon size={20} />
+                <ReactIcon size={18} />
               </View>
               <Text style={styles.headerTitle}>Unified DevTools</Text>
               <Text style={styles.versionTag}>v0.83+</Text>
             </View>
 
             <View style={styles.headerActions}>
-              {activeTab === 'query' && queryClient && (
-                <>
-                  <TouchableOpacity
-                    onPress={handleRefetchAll}
-                    style={styles.headerButton}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.headerButtonText}>Refetch All</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleClearCache}
-                    style={[styles.headerButton, styles.clearButton]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.headerButtonText, styles.clearButtonText]}>Clear</Text>
-                  </TouchableOpacity>
-                </>
-              )}
+              {/* Dual Mode Theme Toggle */}
               <TouchableOpacity
-                onPress={onClose}
+                onPress={toggleTheme}
+                style={styles.themeToggleBtn}
+                activeOpacity={0.7}
+                accessibilityLabel="Toggle Dark and Light Mode"
+              >
+                <Text style={styles.themeToggleText}>
+                  {isDark ? '☀️ Light' : '🌙 Dark'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Close '✕' Button (Click to close) */}
+              <TouchableOpacity
+                onPress={animateClose}
                 style={styles.closeButton}
                 activeOpacity={0.7}
+                accessibilityLabel="Close DevTools"
               >
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
@@ -120,7 +263,7 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
               <View
                 style={[
                   styles.countBadge,
-                  errorLogsCount > 0 && { backgroundColor: THEME.colors.status.error },
+                  errorLogsCount > 0 && { backgroundColor: colors.status.error },
                 ]}
               >
                 <Text style={styles.countText}>{errorLogsCount > 0 ? errorLogsCount : logs.length}</Text>
@@ -144,158 +287,202 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
 
             {activeTab === 'console' && <ConsoleTab />}
           </View>
-        </View>
-      </SafeAreaView>
+
+          <SafeAreaView style={styles.bottomSafeArea} />
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: THEME.colors.headerBg,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: THEME.colors.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: THEME.colors.headerBg,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.colors.border,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  brandBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: THEME.colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandIcon: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    color: THEME.colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  versionTag: {
-    color: THEME.colors.accent,
-    fontSize: 10,
-    fontWeight: '700',
-    backgroundColor: '#3f1519',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  headerButton: {
-    backgroundColor: THEME.colors.card,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  headerButtonText: {
-    color: THEME.colors.textDim,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  clearButton: {
-    borderColor: '#7f1d1d',
-  },
-  clearButtonText: {
-    color: '#f87171',
-  },
-  closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: THEME.colors.card,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-  },
-  closeButtonText: {
-    color: THEME.colors.text,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: THEME.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.colors.border,
-    paddingHorizontal: 8,
-  },
-  tabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabItemActive: {
-    borderBottomColor: THEME.colors.accent,
-  },
-  tabIcon: {
-    fontSize: 13,
-  },
-  tabLabel: {
-    color: THEME.colors.textDim,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  tabLabelActive: {
-    color: THEME.colors.text,
-  },
-  countBadge: {
-    backgroundColor: THEME.colors.card,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
-  },
-  countText: {
-    color: THEME.colors.text,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  viewport: {
-    flex: 1,
-  },
-  placeholderContainer: {
-    flex: 1,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderText: {
-    color: THEME.colors.textMuted,
-    fontSize: 13,
-    textAlign: 'center',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    modalBackdropContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    backdropOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.backdrop,
+    },
+    sheetContainer: {
+      backgroundColor: colors.bg,
+      borderTopLeftRadius: 18,
+      borderTopRightRadius: 18,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 20,
+    },
+    handleBar: {
+      width: '100%',
+      paddingTop: 10,
+      paddingBottom: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.headerBg,
+    },
+    handlePill: {
+      width: 42,
+      height: 4.5,
+      borderRadius: 3,
+      backgroundColor: colors.handle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 12,
+      paddingBottom: 10,
+      backgroundColor: colors.headerBg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+    },
+    brandBadge: {
+      width: 22,
+      height: 22,
+      backgroundColor: 'transparent',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    versionTag: {
+      color: colors.accent,
+      fontSize: 9.5,
+      fontWeight: '700',
+      backgroundColor: colors.card,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 3,
+      borderWidth: 0.5,
+      borderColor: colors.borderSubtle,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    themeToggleBtn: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 7,
+      paddingVertical: 3.5,
+      borderRadius: 5,
+    },
+    themeToggleText: {
+      color: colors.text,
+      fontSize: 10.5,
+      fontWeight: '700',
+    },
+    headerButton: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 7,
+      paddingVertical: 3.5,
+      borderRadius: 5,
+    },
+    headerButtonText: {
+      color: colors.textDim,
+      fontSize: 10.5,
+      fontWeight: '600',
+    },
+    clearButton: {
+      borderColor: '#ef4444',
+    },
+    clearButtonText: {
+      color: '#ef4444',
+    },
+    closeButton: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 2,
+    },
+    closeButtonText: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: 'bold',
+    },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingHorizontal: 8,
+    },
+    tabItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabItemActive: {
+      borderBottomColor: colors.accent,
+    },
+    tabIcon: {
+      fontSize: 13,
+    },
+    tabLabel: {
+      color: colors.textDim,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    tabLabelActive: {
+      color: colors.text,
+    },
+    countBadge: {
+      backgroundColor: colors.card,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 10,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    countText: {
+      color: colors.text,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    viewport: {
+      flex: 1,
+    },
+    placeholderContainer: {
+      flex: 1,
+      padding: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    placeholderText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    bottomSafeArea: {
+      backgroundColor: colors.bg,
+    },
+  });

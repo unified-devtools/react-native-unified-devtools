@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { THEME } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import type { QueryStatusType } from '../types';
 
 interface BadgeProps {
@@ -16,13 +16,14 @@ export const Badge: React.FC<BadgeProps> = ({
   count,
   size = 'md',
 }) => {
+  const { colors } = useTheme();
   const isSm = size === 'sm';
   const bg =
-    status in THEME.colors.status
-      ? THEME.colors.status[status as QueryStatusType]
+    status in colors.status
+      ? colors.status[status as QueryStatusType]
       : status === 'error'
-      ? THEME.colors.status.error
-      : THEME.colors.card;
+      ? colors.status.error
+      : colors.card;
 
   return (
     <View style={[styles.badge, { backgroundColor: bg }, isSm && styles.badgeSm]}>
@@ -58,14 +59,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   textSm: {
-    fontSize: 9,
+    fontSize: 8.5,
   },
   countText: {
     color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
   },
   countTextSm: {
-    fontSize: 9,
+    fontSize: 8.5,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -7,22 +7,27 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import type { Query } from '@tanstack/react-query';
-import { THEME } from '../../theme/colors';
+import type { Query, QueryClient } from '@tanstack/react-query';
+import { useTheme } from '../../theme/ThemeContext';
+import type { ThemeColors } from '../../theme/colors';
 import { formatQueryKey, formatTimeAgo, getQueryStatus } from './queryUtils';
 import { Badge } from '../../shared/Badge';
 
 interface QueryListProps {
   queries: Query[];
+  queryClient?: QueryClient;
   selectedQuery: Query | null;
   onSelectQuery: (query: Query) => void;
 }
 
 export const QueryList: React.FC<QueryListProps> = ({
   queries,
+  queryClient,
   selectedQuery,
   onSelectQuery,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [filterText, setFilterText] = useState('');
   const [sortBy, setSortBy] = useState<'status' | 'key' | 'time'>('status');
 
@@ -85,17 +90,38 @@ export const QueryList: React.FC<QueryListProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Search & Sort */}
+      {/* Search & Actions Bar */}
       <View style={styles.controlsRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Filter queries..."
-          placeholderTextColor={THEME.colors.textMuted}
-          value={filterText}
-          onChangeText={setFilterText}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Filter queries..."
+            placeholderTextColor={colors.textMuted}
+            value={filterText}
+            onChangeText={setFilterText}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {queryClient && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => queryClient.refetchQueries()}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.actionBtnText}>Refetch</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.clearBtn]}
+                onPress={() => queryClient.clear()}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.actionBtnText, styles.clearBtnText]}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
         <View style={styles.sortToggle}>
           <TouchableOpacity
             style={[styles.sortBtn, sortBy === 'status' && styles.sortBtnActive]}
@@ -144,111 +170,143 @@ export const QueryList: React.FC<QueryListProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.colors.bg,
-  },
-  controlsRow: {
-    padding: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
-    backgroundColor: THEME.colors.headerBg,
-    gap: 8,
-  },
-  searchInput: {
-    backgroundColor: THEME.colors.card,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    color: THEME.colors.text,
-    fontSize: 12,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-  },
-  sortToggle: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  sortBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: THEME.colors.borderSubtle,
-    backgroundColor: THEME.colors.card,
-  },
-  sortBtnActive: {
-    borderColor: THEME.colors.accent,
-  },
-  sortBtnText: {
-    color: THEME.colors.textDim,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  sortBtnTextActive: {
-    color: THEME.colors.text,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: THEME.colors.bg,
-  },
-  itemRowSelected: {
-    backgroundColor: THEME.colors.card,
-  },
-  badgeCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    width: 80,
-  },
-  observerPill: {
-    backgroundColor: THEME.colors.card,
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
-  },
-  observerText: {
-    color: THEME.colors.textDim,
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  infoCol: {
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  keyText: {
-    color: THEME.colors.text,
-    fontSize: 12,
-    fontFamily: 'Courier',
-    fontWeight: '600',
-  },
-  timeText: {
-    color: THEME.colors.textMuted,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  chevron: {
-    color: THEME.colors.textMuted,
-    fontSize: 18,
-    paddingLeft: 4,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: THEME.colors.borderSubtle,
-  },
-  emptyContainer: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: THEME.colors.textMuted,
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    controlsRow: {
+      padding: 8,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.headerBg,
+      gap: 8,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    searchInput: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      color: colors.text,
+      fontSize: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    actionBtn: {
+      backgroundColor: colors.card,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    actionBtnText: {
+      color: colors.textDim,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    clearBtn: {
+      borderColor: '#ef4444',
+    },
+    clearBtnText: {
+      color: '#ef4444',
+      fontWeight: '700',
+    },
+    sortToggle: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    sortBtn: {
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      backgroundColor: colors.card,
+    },
+    sortBtnActive: {
+      borderColor: colors.accent,
+    },
+    sortBtnText: {
+      color: colors.textDim,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    sortBtnTextActive: {
+      color: colors.text,
+    },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: colors.bg,
+    },
+    itemRowSelected: {
+      backgroundColor: colors.card,
+    },
+    badgeCol: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      width: 80,
+    },
+    observerPill: {
+      backgroundColor: colors.card,
+      borderRadius: 10,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    observerText: {
+      color: colors.textDim,
+      fontSize: 9,
+      fontWeight: '700',
+    },
+    infoCol: {
+      flex: 1,
+      paddingHorizontal: 8,
+    },
+    keyText: {
+      color: colors.text,
+      fontSize: 12,
+      fontFamily: 'Courier',
+      fontWeight: '600',
+    },
+    timeText: {
+      color: colors.textMuted,
+      fontSize: 10,
+      marginTop: 2,
+    },
+    chevron: {
+      color: colors.textMuted,
+      fontSize: 18,
+      paddingLeft: 4,
+    },
+    separator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.borderSubtle,
+    },
+    emptyContainer: {
+      padding: 32,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontStyle: 'italic',
+    },
+  });
