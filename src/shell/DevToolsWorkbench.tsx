@@ -13,9 +13,11 @@ import {
 import type { Query, QueryClient } from '@tanstack/react-query';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
-import type { ConsoleLogItem, DevToolsTab, QueryStats } from '../types';
+import type { ConsoleLogItem, DevToolsTab, NetworkRequestItem, QueryStats } from '../types';
 import { QueryTab } from '../modules/query/QueryTab';
 import { ConsoleTab } from '../modules/console/ConsoleTab';
+import { NetworkTab } from '../modules/network/NetworkTab';
+import { networkManager } from '../modules/network/networkInterceptor';
 import { TanStackIcon } from '../shared/TanStackIcon';
 import { ReactIcon } from '../shared/ReactIcon';
 
@@ -152,7 +154,20 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
     })
   ).current;
 
+  const [networkRequests, setNetworkRequests] = useState<NetworkRequestItem[]>(
+    networkManager.getRequests()
+  );
+
+  useEffect(() => {
+    return networkManager.subscribe((reqs) => {
+      setNetworkRequests(reqs);
+    });
+  }, []);
+
   const errorLogsCount = logs.filter((l) => l.level === 'error').length;
+  const networkErrorCount = networkRequests.filter(
+    (r) => (r.status !== undefined && r.status >= 400) || r.error
+  ).length;
 
   if (!modalVisible) {
     return null;
@@ -269,6 +284,26 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
                 <Text style={styles.countText}>{errorLogsCount > 0 ? errorLogsCount : logs.length}</Text>
               </View>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabItem, activeTab === 'network' && styles.tabItemActive]}
+              onPress={() => setActiveTab('network')}
+            >
+              <Text style={styles.tabIcon}>🌐</Text>
+              <Text style={[styles.tabLabel, activeTab === 'network' && styles.tabLabelActive]}>
+                Network
+              </Text>
+              <View
+                style={[
+                  styles.countBadge,
+                  networkErrorCount > 0 && { backgroundColor: colors.status.error },
+                ]}
+              >
+                <Text style={styles.countText}>
+                  {networkErrorCount > 0 ? networkErrorCount : networkRequests.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Active Tab Viewport */}
@@ -286,6 +321,8 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
             )}
 
             {activeTab === 'console' && <ConsoleTab />}
+
+            {activeTab === 'network' && <NetworkTab />}
           </View>
 
           <SafeAreaView style={styles.bottomSafeArea} />

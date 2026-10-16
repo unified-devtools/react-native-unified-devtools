@@ -19,6 +19,47 @@ export interface ConsoleLogItem {
   stackTrace?: string;
 }
 
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'ANY';
+
+export type NetworkClientType = 'fetch' | 'xhr';
+
+export type NetworkOverrideMode = 'response' | 'offline' | 'timeout';
+
+export interface NetworkMockRule {
+  id: string;
+  name?: string;
+  enabled: boolean;
+  urlPattern: string; // Glob or substring e.g. "*/users*" or "/api/v1"
+  method: HttpMethod;
+  mode: NetworkOverrideMode;
+  status: number; // 200, 400, 401, 404, 500, etc.
+  statusText?: string;
+  responseHeaders?: Record<string, string>;
+  responseBody: string; // JSON or raw text
+  delayMs?: number; // Artificial latency in milliseconds
+  createdAt: number;
+}
+
+export interface NetworkRequestItem {
+  id: string;
+  url: string;
+  method: string;
+  client: NetworkClientType;
+  startTime: number;
+  endTime?: number;
+  duration?: number; // in milliseconds
+  status?: number;
+  statusText?: string;
+  requestHeaders: Record<string, string>;
+  requestBody?: unknown;
+  responseHeaders?: Record<string, string>;
+  responseBody?: unknown;
+  error?: string;
+  isPending: boolean;
+  isOverridden?: boolean;
+  matchedRuleId?: string;
+}
+
 export type QueryStatusType =
   | 'fresh'
   | 'fetching'
@@ -67,6 +108,11 @@ export interface UnifiedDevToolsProps {
    * Enable console interception. Default: true
    */
   enableConsole?: boolean;
+
+  /**
+   * Enable network interception & mock overrides (fetch, axios, XHR). Default: true
+   */
+  enableNetwork?: boolean;
 
   /**
    * Theme mode: 'dark', 'light', or 'auto' (system). Default: 'dark'
