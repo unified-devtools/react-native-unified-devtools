@@ -4,6 +4,18 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump (none, patch, minor, major)'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
 
 concurrency:
   group: publish-npm-${{ github.ref }}
@@ -20,6 +32,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,6 +49,16 @@ jobs:
 
       - name: Build TypeScript
         run: npm run build
+
+      - name: Bump version (Manual Dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none' && github.event.inputs.bump != ''
+        run: |
+          npm version ${{ github.event.inputs.bump }} --no-git-tag-version
+          NEW_VER=$(node -p "require('./package.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): bump version to $NEW_VER [skip ci]"
+          git push origin master
 
       - name: Check version against npm registry
         id: check-version
