@@ -38,8 +38,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
+          node-version: 22
+
+      - name: Upgrade npm for Trusted Publishing (OIDC)
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm install
@@ -78,11 +80,9 @@ jobs:
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish to npm
+      - name: Publish to npm (Trusted Publishing / OIDC)
         if: steps.check-version.outputs.should_publish == 'true'
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create Git Tag & GitHub Release
         if: steps.check-version.outputs.should_publish == 'true'
