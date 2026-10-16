@@ -1,4 +1,4 @@
-# react-native-unified-devtools
+# @archie-dev/react-native-unified-devtools
 
 An in-app developer tools suite for React Native 0.83+ and Expo. Runs directly inside your running app with zero native iOS or Android dependencies.
 
@@ -8,7 +8,7 @@ An in-app developer tools suite for React Native 0.83+ and Expo. Runs directly i
 
 React Native debugging broke down when Flipper was deprecated, while desktop tools like Reactotron require running a separate Electron companion app. Browser-based tools like `@tanstack/react-query-devtools` crash on mobile because they depend on DOM elements (`document`, `window`, HTML `div` tags).
 
-`react-native-unified-devtools` is built entirely with React Native primitives (`View`, `Text`, `Modal`, `FlatList`, `PanResponder`). It runs on the React Native 0.83+ New Architecture (Bridgeless mode and Fabric) out of the box, with zero CocoaPods, Gradle configs, or native rebuilds.
+`@archie-dev/react-native-unified-devtools` is built entirely with React Native primitives (`View`, `Text`, `Modal`, `FlatList`, `PanResponder`). It runs on the React Native 0.83+ New Architecture (Bridgeless mode and Fabric) out of the box, with zero CocoaPods, Gradle configs, or native rebuilds.
 
 ---
 
@@ -92,9 +92,9 @@ React Native debugging broke down when Flipper was deprecated, while desktop too
 ## Installation
 
 ```bash
-npm install react-native-unified-devtools
+npm install @archie-dev/react-native-unified-devtools
 # or
-yarn add react-native-unified-devtools
+yarn add @archie-dev/react-native-unified-devtools
 ```
 
 Ensure `@tanstack/react-query` is installed if you use the Query module.
@@ -109,7 +109,7 @@ Place `<UnifiedDevTools />` at the root of your application:
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { UnifiedDevTools } from 'react-native-unified-devtools';
+import { UnifiedDevTools } from '@archie-dev/react-native-unified-devtools';
 
 const queryClient = new QueryClient();
 
