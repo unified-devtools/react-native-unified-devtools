@@ -18,6 +18,7 @@ import type { ConsoleLogItem, DevToolsTab, NetworkRequestItem, QueryStats } from
 import { QueryTab } from '../modules/query/QueryTab';
 import { ConsoleTab } from '../modules/console/ConsoleTab';
 import { NetworkTab } from '../modules/network/NetworkTab';
+import { LighthouseTab } from '../modules/lighthouse/LighthouseTab';
 import { networkManager } from '../modules/network/networkInterceptor';
 import { TanStackIcon } from '../shared/TanStackIcon';
 import { ReactIcon } from '../shared/ReactIcon';
@@ -310,6 +311,16 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
                   </Text>
                 </View>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.tabItem, activeTab === 'lighthouse' && styles.tabItemActive]}
+                onPress={() => setActiveTab('lighthouse')}
+              >
+                <Text style={styles.tabIcon}>⚡</Text>
+                <Text style={[styles.tabLabel, activeTab === 'lighthouse' && styles.tabLabelActive]}>
+                  Lighthouse
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -330,6 +341,8 @@ export const DevToolsWorkbench: React.FC<DevToolsWorkbenchProps> = ({
             {activeTab === 'console' && <ConsoleTab />}
 
             {activeTab === 'network' && <NetworkTab />}
+
+            {activeTab === 'lighthouse' && <LighthouseTab />}
           </View>
 
           <SafeAreaView style={styles.bottomSafeArea} />

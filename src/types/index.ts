@@ -115,6 +115,11 @@ export interface UnifiedDevToolsProps {
   enableNetwork?: boolean;
 
   /**
+   * Enable Lighthouse screen performance auditing. Default: true
+   */
+  enableLighthouse?: boolean;
+
+  /**
    * Theme mode: 'dark', 'light', or 'auto' (system). Default: 'dark'
    */
   themeMode?: 'dark' | 'light' | 'auto';
@@ -131,3 +136,5 @@ export interface UnifiedDevToolsProps {
 }
 
 export type ThemeMode = 'dark' | 'light' | 'auto';
+
+export * from '../modules/lighthouse/types';
