@@ -13,6 +13,7 @@ export class ScreenPerformanceManager {
   private listeners: Set<(screenName: string) => void> = new Set();
 
   public setCurrentScreen(screenName: string): void {
+    const isNew = this.currentScreen !== screenName;
     this.currentScreen = screenName;
     if (!this.screens.has(screenName)) {
       this.screens.set(screenName, {
@@ -21,7 +22,9 @@ export class ScreenPerformanceManager {
         renders: [],
       });
     }
-    this.notify();
+    if (isNew) {
+      this.notify();
+    }
   }
 
   public getCurrentScreen(): string {
@@ -38,7 +41,6 @@ export class ScreenPerformanceManager {
     data.mountDurationMs = Math.round(durationMs);
     data.mountTimestamp = Date.now();
     this.screens.set(screenName, data);
-    this.notify();
   }
 
   public recordRender(screenName: string, componentName = 'Screen'): void {
@@ -59,7 +61,6 @@ export class ScreenPerformanceManager {
     // Prune renders older than 10 seconds to prevent memory buildup
     const now = Date.now();
     data.renders = data.renders.filter((r) => now - r.timestamp < 10000);
-    this.notify();
   }
 
   public getMountDuration(screenName: string): number {

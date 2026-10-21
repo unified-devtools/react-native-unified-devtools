@@ -26,7 +26,7 @@ export const LighthouseTab: React.FC = () => {
   // Sync screen name changes
   useEffect(() => {
     return screenPerformanceManager.subscribe((screen) => {
-      setCurrentScreen(screen);
+      setCurrentScreen((prev) => (prev === screen ? prev : screen));
     });
   }, []);
 
