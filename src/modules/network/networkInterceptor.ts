@@ -6,7 +6,7 @@ import type {
   NetworkRequestItem,
 } from '../../types';
 
-function getStatusText(status: number): string {
+export function getStatusText(status: number): string {
   const map: Record<number, string> = {
     200: 'OK',
     201: 'Created',
@@ -30,7 +30,7 @@ function getStatusText(status: number): string {
   return map[status] || 'Unknown';
 }
 
-function matchUrlPattern(pattern: string, url: string): boolean {
+export function matchUrlPattern(pattern: string, url: string): boolean {
   if (!pattern || !url) return false;
   const p = pattern.trim();
   const u = url.trim();
@@ -80,7 +80,7 @@ function matchUrlPattern(pattern: string, url: string): boolean {
   return false;
 }
 
-class NetworkManager {
+export class NetworkManager {
   private requests: NetworkRequestItem[] = [];
   private mockRules: NetworkMockRule[] = [];
   private overridesEnabled = true;
@@ -91,12 +91,24 @@ class NetworkManager {
   private originalFetch: typeof global.fetch | null = null;
   private originalXHR: typeof global.XMLHttpRequest | null = null;
 
-  public init() {
-    if (this.isInitialized || process.env.NODE_ENV === 'test') return;
+  public init(force = false) {
+    if (this.isInitialized || (process.env.NODE_ENV === 'test' && !force)) return;
     this.isInitialized = true;
 
     this.instrumentFetch();
     this.instrumentXHR();
+  }
+
+  public restore(): void {
+    if (this.originalFetch) {
+      global.fetch = this.originalFetch;
+      this.originalFetch = null;
+    }
+    if (this.originalXHR) {
+      global.XMLHttpRequest = this.originalXHR;
+      this.originalXHR = null;
+    }
+    this.isInitialized = false;
   }
 
   public getRequests(): NetworkRequestItem[] {

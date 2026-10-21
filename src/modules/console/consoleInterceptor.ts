@@ -1,6 +1,6 @@
 import type { ConsoleLogItem, ConsoleLogLevel } from '../../types';
 
-class ConsoleLogManager {
+export class ConsoleLogManager {
   private logs: ConsoleLogItem[] = [];
   private listeners: Set<(logs: ConsoleLogItem[]) => void> = new Set();
   private isInitialized = false;
@@ -13,8 +13,8 @@ class ConsoleLogManager {
     debug: console.debug,
   };
 
-  public init() {
-    if (this.isInitialized || process.env.NODE_ENV === 'test') return;
+  public init(force = false) {
+    if (this.isInitialized || (process.env.NODE_ENV === 'test' && !force)) return;
     this.isInitialized = true;
 
     const levels: ConsoleLogLevel[] = ['log', 'info', 'warn', 'error', 'debug'];
@@ -77,6 +77,14 @@ class ConsoleLogManager {
     } catch {
       return String(obj);
     }
+  }
+
+  public restore() {
+    const levels: ConsoleLogLevel[] = ['log', 'info', 'warn', 'error', 'debug'];
+    levels.forEach((level) => {
+      console[level] = this.originalConsole[level];
+    });
+    this.isInitialized = false;
   }
 
   public getLogs(): ConsoleLogItem[] {
