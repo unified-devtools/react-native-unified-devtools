@@ -11,7 +11,9 @@
   "files": [
     "dist",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "LICENSE.LESSER"
   ],
   "scripts": {
     "build": "tsc",
@@ -30,7 +32,7 @@
     "flipper",
     "buoy"
   ],
-  "license": "MIT",
+  "license": "LGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "https://github.com/unified-devtools/react-native-unified-devtools.git"
