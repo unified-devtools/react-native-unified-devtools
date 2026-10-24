@@ -12,7 +12,7 @@ import {
   QueryClientProvider,
   useQuery,
 } from '@tanstack/react-query';
-import { UnifiedDevTools } from '../src';
+import { UnifiedDevTools, LighthouseTestScreen } from '../src';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -132,25 +132,40 @@ function ConsoleLoggerSection() {
 }
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<'home' | 'lighthouse'>('home');
+
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaView style={styles.screen}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.header}>Unified DevTools Demo</Text>
-          <Text style={styles.subtitle}>
-            React Native 0.83+ & Expo Native Developer Workbench.
-            Tap the floating capsule at the bottom to inspect queries and logs!
-          </Text>
+        {currentView === 'lighthouse' ? (
+          <LighthouseTestScreen onNavigateBack={() => setCurrentView('home')} />
+        ) : (
+          <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.header}>Unified DevTools Demo</Text>
+            <Text style={styles.subtitle}>
+              React Native 0.83+ & Expo Native Developer Workbench.
+              Tap the floating capsule at the bottom to inspect queries, logs, and lighthouse!
+            </Text>
 
-          <FeedQuery />
-          <UserQuery />
-          <ConsoleLoggerSection />
-        </ScrollView>
+            <TouchableOpacity
+              style={styles.lighthouseNavBtn}
+              onPress={() => setCurrentView('lighthouse')}
+            >
+              <Text style={styles.lighthouseNavBtnText}>
+                ⚡ Open Lighthouse Test Screen →
+              </Text>
+            </TouchableOpacity>
+
+            <FeedQuery />
+            <UserQuery />
+            <ConsoleLoggerSection />
+          </ScrollView>
+        )}
 
         {/* Unified In-App DevTools Component */}
         <UnifiedDevTools
           queryClient={queryClient}
-          defaultTab="query"
+          defaultTab="lighthouse"
           initialIsOpen={false}
           position="bottom-right"
         />
@@ -179,6 +194,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 8,
+  },
+  lighthouseNavBtn: {
+    backgroundColor: '#0284c7',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  lighthouseNavBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   card: {
     backgroundColor: '#0f172a',

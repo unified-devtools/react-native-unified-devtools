@@ -12,9 +12,9 @@ React Native debugging broke down when Flipper was deprecated, while desktop too
 
 ---
 
-## Current Features (v0.2.0)
+## Features
 
-### 1. Draggable Floating HUD
+### 1. Draggable Floating HUD Capsule
 
 - **Edge-Snapping Capsule**: A persistent overlay pill that stays on screen across hot reloads. Dragging and releasing automatically springs the pill to the nearest left or right edge.
 - **Live Micro-Metrics**:
@@ -23,7 +23,26 @@ React Native debugging broke down when Flipper was deprecated, while desktop too
   - Live error pill that highlights red when unhandled exceptions, console errors, or failed network requests (4xx/5xx/offline) occur.
 - **Touch-Safe**: Uses movement deltas to separate dragging from taps, opening the workbench on click without getting stuck.
 
-### 2. Network Inspector & Mock Overrides (fetch, Axios, GraphQL, XHR)
+### 2. Screen Lighthouse Performance Auditor (0–100 Score)
+
+- **Continuous Micro-Trackers**:
+  - **Mount TTI Tracker**: Automatically tracks time elapsed from component mount trigger to commit using React's Profiler API (target: `<250ms`).
+  - **Live FPS & Frame Drop Sampler**: Measures true rAF display cadence and tallies frame drops during animations and scroll events (target: `>55 FPS`, `<=2 drops`).
+  - **JS Event Loop Lag Monitor**: Detects thread freezing and synchronous blocking drift by tracking high-resolution interval drift (budget: `<35ms`).
+  - **Component Re-render Hotspot Profiler**: Detects unmemoized re-render storms and groups components by frequency.
+  - **Hermes Heap & Slow Network Sampler**: Tracks active Hermes memory allocations and delays from network requests exceeding 500ms.
+- **Weighted 0–100 Scoring Model**:
+  - **Mount TTI**: 30% weight
+  - **FPS & Frame Drops**: 25% weight
+  - **Event Loop Lag**: 20% weight
+  - **Re-render Frequency**: 15% weight
+  - **Memory & Slow Network**: 10% weight
+- **Visual Score Gauges & Actionable Diagnostics**:
+  - Color-coded ratings: Green/Fast (`90–100`), Amber/Average (`50–89`), Red/Poor (`0–49`).
+  - Specific fix recommendations for every warning or critical failure (e.g. `React.memo`, `InteractionManager`, query caching, component splitting).
+- **Programmatic & Negative Test Support**: Easily test negative degradation paths (scores `< 60%`) in CI or staging screens.
+
+### 3. Network Inspector & Mock Overrides (fetch, Axios, GraphQL, XHR)
 
 - **Universal Traffic Capture**: Non-destructively intercepts `global.fetch` and `XMLHttpRequest` calls (Axios, Apollo GraphQL, Supabase, and REST).
 - **Deep Inspection**: View request headers, query parameters, response headers, request body, and auto-parsed JSON responses via the interactive tree viewer.
@@ -38,7 +57,7 @@ React Native debugging broke down when Flipper was deprecated, while desktop too
   - Master toggle switch and per-rule ON/OFF controls.
 - **Export**: Copy any captured request as an executable `curl` command or copy response JSON with one tap.
 
-### 3. TanStack Query Inspector
+### 4. TanStack Query Inspector
 
 - **Status Badges**: Categorizes all cached queries into `fresh`, `fetching`, `stale`, `paused`, `inactive`, and `error`.
 - **Cache Mutation Actions**:
@@ -48,35 +67,18 @@ React Native debugging broke down when Flipper was deprecated, while desktop too
 - **Native JSON Tree**: An expandable/collapsible tree viewer built without web DOM libraries. Highlights strings, numbers, booleans, arrays, and objects with depth indentation.
 - **Filter and Sort**: Search query keys by text or sort by status, query hash, and last updated timestamp.
 
-### 4. In-App Console Logger
+### 5. In-App Console Logger
 
 - **Non-Destructive Interception**: Wraps `console.log`, `console.info`, `console.warn`, `console.error`, and `console.debug` while preserving standard Metro terminal output.
 - **Log Filtering**: Filter by level (`All`, `Errors`, `Warnings`, `Logs`) or search text across logged arguments.
 - **Deep Argument Inspection**: Objects and arrays passed to `console.log` can be expanded inline through the JSON tree.
 - **Error Traces**: Captures call stacks for `console.error` and exceptions with selectable text for copying.
 
-### 5. Workbench Ergonomics & Theming
+### 6. Workbench Ergonomics & Theming
 
 - **Dual Mode Blue Theme**: Switch seamlessly between Deep Midnight Navy (Dark mode) and Clean Ice Blue (Light mode) via the header toggle.
 - **Bottom-Sheet Swipe to Dismiss**: Drag down from the handle or header to dismiss the workbench with spring physics.
 - **One-Tap Clipboard Copying**: Easily copy query keys, JSON branches, request payloads, response payloads, URLs, and curl commands.
-
----
-
-## Roadmap & Future Releases
-
-### State & Storage (Zustand & AsyncStorage)
-
-- **Zustand Inspector**: Register store hooks to view live state trees, track the last 50 state transitions with property diffs, and test state overrides in-place.
-- **AsyncStorage Explorer**: Inspect all persisted keys and byte sizes, edit stored values in-app with JSON validation, delete individual keys, or wipe the cache.
-
-### Mobile Lighthouse Performance Auditor
-
-- **0–100 Performance Score**: Algorithmic screen health rating based on mount speed, frame stability, and thread lag.
-- **Screen Mount TTI**: Track milliseconds elapsed from navigation transition to screen mount commit.
-- **Thread Lag (TBT)**: Measure event loop delays and dropped frames on the JS thread.
-- **Re-render Hotspot Detection**: Hook into `React.Profiler` to flag components that re-render excessively.
-- **Actionable Diagnostics**: Automated warnings when screens exceed render budgets or generate memory spikes.
 
 ---
 
@@ -103,7 +105,9 @@ Ensure `@tanstack/react-query` is installed if you use the Query module.
 
 ## Quick Start
 
-Place `<UnifiedDevTools />` at the root of your application:
+### 1. Mount DevTools at App Root
+
+Place `<UnifiedDevTools />` at the root of your application (outside of your screen navigation tree to avoid observer profiling effects):
 
 ```tsx
 import React from 'react';
@@ -124,7 +128,7 @@ export default function App() {
         {__DEV__ && (
           <UnifiedDevTools
             queryClient={queryClient}
-            defaultTab="query"
+            defaultTab="lighthouse"
             initialIsOpen={false}
             position="bottom-right"
           />
@@ -143,20 +147,126 @@ const styles = StyleSheet.create({
 
 ---
 
-## Props
+## How to Use Lighthouse Screen Auditor
 
-| Prop               | Type                                                           | Default          | Description                                                    |
-| :----------------- | :------------------------------------------------------------- | :--------------- | :------------------------------------------------------------- |
-| `queryClient`      | `QueryClient`                                                  | `undefined`      | Optional instance if wrapped in `QueryClientProvider`.         |
-| `defaultTab`       | `'query' \| 'console' \| 'network'`                            | `'query'`        | Tab opened by default when launching the workbench.           |
-| `initialIsOpen`    | `boolean`                                                      | `false`          | Opens the workbench modal on mount.                            |
-| `position`         | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'bottom-right'` | Starting corner for the floating capsule.                      |
-| `enabled`          | `boolean`                                                      | `true`           | Controls whether the devtools render (e.g. `__DEV__`).         |
-| `enableConsole`    | `boolean`                                                      | `true`           | Enables console interception on mount.                         |
-| `enableNetwork`    | `boolean`                                                      | `true`           | Enables network interception & mock overrides (fetch/Axios).   |
-| `themeMode`        | `'dark' \| 'light' \| 'auto'`                                  | `'dark'`         | Sets default theme palette mode.                               |
-| `sheetHeightRatio` | `number`                                                       | `0.82`           | Height of the bottom sheet relative to window (0.40 to 0.95).  |
-| `style`            | `StyleProp<ViewStyle>`                                         | `undefined`      | Optional style override for root overlay container.            |
+### Step 1: Wrap Your Screen with `<ScreenProfiler>`
+
+Wrap any screen component with `<ScreenProfiler>` to measure mount TTI, re-renders, and component hotspots:
+
+```tsx
+import React from 'react';
+import { ScrollView, Text } from 'react-native';
+import { ScreenProfiler } from '@archie-dev/react-native-unified-devtools';
+
+export function ProductDetailsScreen() {
+  return (
+    <ScreenProfiler id="ProductDetailsScreen">
+      <ScrollView>
+        <Text>Product Details</Text>
+        {/* Your screen components */}
+      </ScrollView>
+    </ScreenProfiler>
+  );
+}
+```
+
+### Step 2: Open the Lighthouse Tab
+
+1. Tap the floating HUD capsule at the bottom-right of your screen.
+2. Select the **Lighthouse** tab (`⚡`).
+3. View the live 0–100 score gauge, 6 core metrics, and actionable diagnostics for the current active screen.
+4. Tap **"⚡ Run Audit"** to run a fresh 1.5-second live sampling window.
+
+### Step 3: Programmatic Audits (Testing & CI)
+
+You can run automated screen audits directly in code or unit/E2E test suites:
+
+```tsx
+import {
+  runLighthouseAudit,
+  computeLighthouseScore,
+  screenPerformanceManager,
+} from '@archie-dev/react-native-unified-devtools';
+
+// Run live 2-second audit window
+const result = await runLighthouseAudit('ProductDetailsScreen', {
+  sampleDurationMs: 2000,
+});
+
+console.log('Score:', result.overallScore); // 0-100
+console.log('Grade:', result.gradeLabel);   // EXCELLENT, NEEDS IMPROVEMENT, POOR
+console.log('Sub-scores:', result.subScores);
+
+// Or calculate score from an explicit metric snapshot
+const scoreResult = computeLighthouseScore({
+  screenName: 'CheckoutScreen',
+  timestamp: Date.now(),
+  mountDurationMs: 180,
+  fps: 59.2,
+  droppedFrames: 1,
+  eventLoopLagMs: 18,
+  reRenderCount: 2,
+  reRenderHotspots: [],
+  hermesHeapMb: 42.1,
+  slowQueriesCount: 0,
+});
+```
+
+---
+
+## Negative Testing Guide (< 60% Score)
+
+To verify that your app correctly flags degraded performance, test a negative scenario where the screen score drops below 60%:
+
+```tsx
+import {
+  screenPerformanceManager,
+  computeLighthouseScore,
+} from '@archie-dev/react-native-unified-devtools';
+
+// 1. Simulate slow screen mount (>600ms)
+screenPerformanceManager.recordMount('SlowScreen', 720);
+
+// 2. Simulate re-render storm (>10 unmemoized updates)
+for (let i = 0; i < 15; i++) {
+  screenPerformanceManager.recordRender('SlowScreen', 'UnmemoizedSubtree');
+}
+
+// 3. Negative snapshot yielding a score < 60%
+const negativeSnapshot = {
+  screenName: 'SlowScreen',
+  timestamp: Date.now(),
+  mountDurationMs: 720,      // Mount score: 30 pts
+  fps: 38.5,                 // FPS score: 15 pts
+  droppedFrames: 12,
+  eventLoopLagMs: 115,       // Lag score: 10 pts
+  reRenderCount: 15,         // Render score: 20 pts
+  reRenderHotspots: [{ componentName: 'UnmemoizedSubtree', count: 15 }],
+  hermesHeapMb: 68.4,
+  slowQueriesCount: 3,       // Network score: 30 pts
+};
+
+const result = computeLighthouseScore(negativeSnapshot);
+console.log(result.overallScore); // ~21 / 100 (< 60% - POOR)
+console.log(result.diagnostics);  // Contains critical warnings & fixes
+```
+
+---
+
+## Props Reference
+
+| Prop               | Type                                                                       | Default          | Description                                                    |
+| :----------------- | :------------------------------------------------------------------------- | :--------------- | :------------------------------------------------------------- |
+| `queryClient`      | `QueryClient`                                                              | `undefined`      | Optional instance if wrapped in `QueryClientProvider`.         |
+| `defaultTab`       | `'query' \| 'console' \| 'network' \| 'lighthouse'`                        | `'query'`        | Tab opened by default when launching the workbench.           |
+| `initialIsOpen`    | `boolean`                                                                  | `false`          | Opens the workbench modal on mount.                            |
+| `position`         | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'`             | `'bottom-right'` | Starting corner for the floating capsule.                      |
+| `enabled`          | `boolean`                                                                  | `true`           | Controls whether the devtools render (e.g. `__DEV__`).         |
+| `enableConsole`    | `boolean`                                                                  | `true`           | Enables console interception on mount.                         |
+| `enableNetwork`    | `boolean`                                                                  | `true`           | Enables network interception & mock overrides (fetch/Axios).   |
+| `themeMode`        | `'dark' \| 'light' \| 'auto'`                                              | `'dark'`         | Sets default theme palette mode.                               |
+| `sheetHeightRatio` | `number`                                                                   | `0.82`           | Height of the bottom sheet relative to window (0.40 to 0.95).  |
+| `style`            | `StyleProp<ViewStyle>`                                                     | `undefined`      | Optional style override for root overlay container.            |
 
 ---
 

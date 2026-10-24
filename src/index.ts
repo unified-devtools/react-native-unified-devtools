@@ -12,6 +12,8 @@ export { networkManager } from './modules/network/networkInterceptor';
 export { NetworkDetailsModal } from './modules/network/NetworkDetailsModal';
 export { MockRulesModal } from './modules/network/MockRulesModal';
 export { LighthouseTab } from './modules/lighthouse/LighthouseTab';
+export { LighthouseTestScreen } from './modules/lighthouse/LighthouseTestScreen';
+export type { LighthouseTestScreenProps } from './modules/lighthouse/LighthouseTestScreen';
 export { ScreenProfiler, useScreenProfiler, screenPerformanceManager } from './modules/lighthouse/screenProfiler';
 export { runLighthouseAudit, computeLighthouseScore } from './modules/lighthouse/lighthouseAuditor';
 export { fpsTracker } from './modules/lighthouse/fpsTracker';
