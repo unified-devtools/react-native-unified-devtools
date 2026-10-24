@@ -80,6 +80,15 @@ React Native debugging broke down when Flipper was deprecated, while desktop too
 - **Bottom-Sheet Swipe to Dismiss**: Drag down from the handle or header to dismiss the workbench with spring physics.
 - **One-Tap Clipboard Copying**: Easily copy query keys, JSON branches, request payloads, response payloads, URLs, and curl commands.
 
+### 7. React Navigation v7 & v6 Inspector (`/navigation`)
+
+- **Subpath Export**: Available via `@archie-dev/react-native-unified-devtools/navigation` with zero native dependencies.
+- **Static & Dynamic API Support**: Works out of the box with React Navigation v7 `createStaticNavigation` and traditional `NavigationContainer`.
+- **Live Route Tree & Params**: Recursively maps nested navigators (Stacks, Tabs, Drawers) and inspects real-time route parameters.
+- **Action Timeline & Transition Profiling**: Automatically tracks navigation history (`NAVIGATE`, `GO_BACK`, `RESET`) and calculates transition latency.
+- **Quick Jump Dispatcher**: Jump to any screen or dispatch test params directly from the devtools interface.
+- **Complete Documentation**: See the [React Navigation Guide (NAVIGATION.md)](./NAVIGATION.md) for full setup instructions and API reference.
+
 ---
 
 ## Compatibility
@@ -143,6 +152,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+```
+
+### 2. Connect React Navigation v7 / v6 (Optional)
+
+Attach navigation state, action timeline, and route trees to the devtools with a single hook:
+
+```tsx
+import React from 'react';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { UnifiedDevTools } from '@archie-dev/react-native-unified-devtools';
+import { useNavigationDevTools } from '@archie-dev/react-native-unified-devtools/navigation';
+
+export default function App() {
+  const navigationRef = useNavigationContainerRef();
+
+  // 1 line: auto-logs route state, transitions, and action history
+  useNavigationDevTools(navigationRef);
+
+  return (
+    <>
+      <NavigationContainer ref={navigationRef}>
+        <RootNavigator />
+      </NavigationContainer>
+      {__DEV__ && <UnifiedDevTools />}
+    </>
+  );
+}
 ```
 
 ---

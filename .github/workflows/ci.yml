@@ -36,3 +36,6 @@ jobs:
 
       - name: Build TypeScript
         run: npm run build
+
+      - name: Verify Package Tarball
+        run: npm pack --dry-run

@@ -1,0 +1,7 @@
+{
+  "name": "@archie-dev/react-native-unified-devtools/navigation",
+  "private": true,
+  "main": "../dist/navigation/index.js",
+  "module": "../dist/navigation/index.mjs",
+  "types": "../dist/navigation/index.d.ts"
+}

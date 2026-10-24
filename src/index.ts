@@ -19,6 +19,16 @@ export { runLighthouseAudit, computeLighthouseScore } from './modules/lighthouse
 export { fpsTracker } from './modules/lighthouse/fpsTracker';
 export { eventLoopTracker } from './modules/lighthouse/eventLoopTracker';
 export { getHermesMemorySnapshot } from './modules/lighthouse/hermesTracker';
+export { NavigationTab } from './modules/navigation/NavigationTab';
+export { useNavigationDevTools } from './modules/navigation/useNavigationDevTools';
+export { NavigationDevToolsManager, navigationManager } from './modules/navigation/navigationManager';
+export type {
+  NavigationEventItem,
+  NavigationRouteNode,
+  NavigationStateSnapshot,
+  UseNavigationDevToolsOptions,
+  NavigationListener,
+} from './modules/navigation/types';
 export { JsonTree } from './shared/JsonTree';
 export { Badge } from './shared/Badge';
 export { TanStackIcon } from './shared/TanStackIcon';

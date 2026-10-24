@@ -1,6 +1,6 @@
 {
   "name": "@archie-dev/react-native-unified-devtools",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "publishConfig": {
     "access": "public"
   },
@@ -8,9 +8,20 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./navigation": {
+      "types": "./dist/navigation/index.d.ts",
+      "default": "./dist/navigation/index.js"
+    }
+  },
   "files": [
     "dist",
     "src",
+    "navigation",
     "README.md",
     "LICENSE",
     "LICENSE.LESSER"
@@ -42,16 +53,21 @@
   },
   "homepage": "https://github.com/unified-devtools/react-native-unified-devtools#readme",
   "peerDependencies": {
+    "@react-navigation/native": ">=6.0.0 || >=7.0.0",
     "@tanstack/react-query": ">=4.0.0 || >=5.0.0",
     "react": ">=18.2.0 || >=19.0.0",
     "react-native": ">=0.74.0 || >=0.80.0 || >=0.83.0"
   },
   "peerDependenciesMeta": {
+    "@react-navigation/native": {
+      "optional": true
+    },
     "@tanstack/react-query": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@react-navigation/native": "^7.0.0",
     "@tanstack/react-query": "^5.28.0",
     "@types/jest": "^29.5.14",
     "@types/react": "^18.2.79",

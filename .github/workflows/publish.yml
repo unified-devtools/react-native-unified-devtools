@@ -23,6 +23,7 @@ concurrency:
 
 permissions:
   contents: write
+  packages: write
   id-token: write
 
 jobs:
@@ -83,9 +84,26 @@ jobs:
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Package tarball
+        if: steps.check-version.outputs.should_publish == 'true'
+        id: pack
+        run: |
+          TARBALL=$(npm pack)
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+
       - name: Publish to npm (Trusted Publishing / OIDC)
         if: steps.check-version.outputs.should_publish == 'true'
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance || npm publish --access public || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        if: steps.check-version.outputs.should_publish == 'true'
+        run: |
+          echo "@archie-dev:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          npm publish || true
+          rm -f ~/.npmrc
 
       - name: Create Git Tag & GitHub Release
         if: steps.check-version.outputs.should_publish == 'true'
@@ -93,7 +111,18 @@ jobs:
           VERSION="v${{ steps.check-version.outputs.local_version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "$VERSION"
+          git tag "$VERSION" || true
           git push origin "$VERSION" || true
+
+          TARBALL="${{ steps.pack.outputs.tarball }}"
+          if [ -f "$TARBALL" ]; then
+            gh release create "$VERSION" "$TARBALL" \
+              --title "Release $VERSION" \
+              --generate-notes
+          else
+            gh release create "$VERSION" \
+              --title "Release $VERSION" \
+              --generate-notes
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

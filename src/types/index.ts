@@ -6,6 +6,7 @@ export type DevToolsTab =
   | 'console'
   | 'network'
   | 'lighthouse'
+  | 'navigation'
   | 'zustand'
   | 'storage';
 
