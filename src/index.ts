@@ -37,4 +37,6 @@ export { THEME, DARK_THEME, LIGHT_THEME } from './theme/colors';
 export type { Theme, ThemeColors, ThemeStatusColors, ThemeConsoleColors } from './theme/colors';
 export { ThemeProvider, useTheme, ThemeContext } from './theme/ThemeContext';
 export type { ThemeMode, ThemeContextValue, ThemeProviderProps } from './theme/ThemeContext';
+export { desktopConnector, connectToDesktop } from './desktop/desktopConnector';
+export type { DesktopConnectorOptions } from './desktop/desktopConnector';
 export * from './types';

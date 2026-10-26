@@ -126,6 +126,11 @@ export interface UnifiedDevToolsProps {
   themeMode?: 'dark' | 'light' | 'auto';
 
   /**
+   * Enable connection to Unified Desktop companion app on port 9020. Default: true
+   */
+  enableDesktop?: boolean;
+
+  /**
    * Ratio of screen height for the DevTools bottom sheet (e.g. 0.82 = 82%). Default: 0.82
    */
   sheetHeightRatio?: number;

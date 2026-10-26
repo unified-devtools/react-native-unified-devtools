@@ -5,6 +5,7 @@ import { FloatingHud } from './shell/FloatingHud';
 import { consoleManager } from './modules/console/consoleInterceptor';
 import { networkManager } from './modules/network/networkInterceptor';
 import { useQueryDevtools } from './modules/query/useQueryDevtools';
+import { connectToDesktop } from './desktop/desktopConnector';
 import { ThemeProvider } from './theme/ThemeContext';
 import type { ConsoleLogItem, UnifiedDevToolsProps } from './types';
 
@@ -16,6 +17,7 @@ const UnifiedDevToolsContent: React.FC<UnifiedDevToolsProps> = ({
   enabled = true,
   enableConsole = true,
   enableNetwork = true,
+  enableDesktop = true,
   sheetHeightRatio = 0.82,
   style,
 }) => {
@@ -49,6 +51,13 @@ const UnifiedDevToolsContent: React.FC<UnifiedDevToolsProps> = ({
   }, [enableNetwork]);
 
   const { queries, stats, queryClient: resolvedClient } = useQueryDevtools(queryClient);
+
+  // Automatically connect to Unified Desktop companion app (Port 9020)
+  useEffect(() => {
+    if (enableDesktop && enabled && (process.env.NODE_ENV !== 'test')) {
+      connectToDesktop({ queryClient: resolvedClient });
+    }
+  }, [enableDesktop, enabled, resolvedClient]);
 
   if (!enabled) {
     return null;

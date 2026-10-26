@@ -133,6 +133,11 @@ export class NetworkManager {
     this.notifyRules();
   }
 
+  public setRules(rules: NetworkMockRule[]): void {
+    this.mockRules = [...rules];
+    this.notifyRules();
+  }
+
   public addRule(rule: Omit<NetworkMockRule, 'id' | 'createdAt'>): NetworkMockRule {
     const newRule: NetworkMockRule = {
       ...rule,
