@@ -100,10 +100,12 @@ jobs:
       - name: Publish to GitHub Packages
         if: steps.check-version.outputs.should_publish == 'true'
         run: |
-          echo "@archie-dev:registry=https://npm.pkg.github.com" > ~/.npmrc
+          npm pkg set name="@unified-devtools/react-native-unified-devtools"
+          echo "@unified-devtools:registry=https://npm.pkg.github.com" > ~/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
           npm publish || true
           rm -f ~/.npmrc
+          git checkout package.json
 
       - name: Create Git Tag & GitHub Release
         if: steps.check-version.outputs.should_publish == 'true'
